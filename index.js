@@ -3,6 +3,7 @@ const cors = require('cors');
 const SSLCommerzPayment = require('sslcommerz-lts')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const bodyParser = require('body-parser'); // Import body-parser module
+const moment = require('moment-timezone');
 const app = express();
 require('dotenv').config()
 const port = process.env.PORT || 5000;
@@ -52,6 +53,13 @@ async function run() {
 
         app.post('/order', async (req, res) => {
 
+            // Get current date and time in Bangladesh (Dhaka) timezone
+            const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
+
+            // Format order_time and order_date
+            const order_time = currentDateTimeDhaka.format('h:mm a');
+            const order_date = currentDateTimeDhaka.format('MMM D, YYYY');
+
             const book = await bookCollection.findOne({
                 _id: new ObjectId(req.body.bookId),
             });
@@ -61,10 +69,10 @@ async function run() {
                 total_amount: book?.price,
                 currency: 'BDT',
                 tran_id: trans_id, // use unique tran_id for each api call
-                success_url: `http://localhost:5000/payment/success/${trans_id}`,
-                fail_url: `http://localhost:5000/payment/fail/${trans_id}`,
-                cancel_url: 'http://localhost:3030/cancel',
-                ipn_url: 'http://localhost:3030/ipn',
+                success_url: `https://jahirul-islam-portfolio-api.onrender.com/payment/success/${trans_id}`,
+                fail_url: `https://jahirul-islam-portfolio-api.onrender.com/payment/fail/${trans_id}`,
+                cancel_url: 'https://jahirul-islam-portfolio-api.onrender.com/cancel',
+                ipn_url: 'https://jahirul-islam-portfolio-api.onrender.com/ipn',
                 shipping_method: 'Courier',
                 product_name: book?.name,
                 product_category: 'Electronic',
@@ -86,6 +94,8 @@ async function run() {
                 ship_state: 'Dhaka',
                 ship_postcode: 1000,
                 ship_country: 'Bangladesh',
+                order_time: order_time,
+                order_date: order_date,
             };
             const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
             sslcz.init(data).then(apiResponse => {
@@ -108,7 +118,6 @@ async function run() {
 
             // payment success route
             app.post("/payment/success/:transId", async (req, res) => {
-                console.log(req.params.transId)
                 const result = await oderCollection.updateOne(
                     { tranjectionId: req.params.transId },
                     {
@@ -187,8 +196,63 @@ async function run() {
             const result = await bookCollection.deleteOne(query);
             res.send(result)
         })
-
         /* book crud operation end */
+
+
+
+        /* Order crud operation start */
+        // new order post 
+        // app.post('/book', async (req, res) => {
+        //     const newBook = req.body;
+        //     console.log(newBook)
+        //     const result = await bookCollection.insertOne(newBook);
+        //     res.send(result)
+        // })
+
+        // get all order
+        app.get('/order', async (req, res) => {
+            const orders = oderCollection.find();
+            const result = await orders.toArray();
+            res.send(result)
+        })
+
+        // get specific id order
+        app.get('/order/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await bookCollection.findOne(query);
+            res.send(result)
+        })
+
+        // update specific id order other wise create new order
+        app.put('/order/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true } // if have this id data upadate other wise create new
+            const updatedBook = req.body;
+            const book = {
+                $set: {
+                    image: updatedBook.image,
+                    name: updatedBook.name,
+                    price: updatedBook.price,
+                    author: updatedBook.author,
+                    review: updatedBook.review,
+                    details: updatedBook.details,
+                }
+            }
+
+            const result = await bookCollection.updateOne(filter, book, options);
+            res.send(result)
+        })
+
+        // delete specific id order
+        app.delete('/order/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await bookCollection.deleteOne(query);
+            res.send(result)
+        })
+        /* order crud operation end */
 
 
         // Send a ping to confirm a successful connection
