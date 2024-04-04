@@ -4,6 +4,7 @@ const SSLCommerzPayment = require('sslcommerz-lts')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const bodyParser = require('body-parser'); // Import body-parser module
 const moment = require('moment-timezone');
+const { sendMail } = require('./helpers/sendMail');
 const app = express();
 require('dotenv').config()
 const port = process.env.PORT || 5000;
@@ -19,9 +20,6 @@ app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded bodies
 const apiUrl = process.env.API_URL;
 const clientUrl = process.env.CLIENT_URL;
 // mongodb 
-const dbUser = process.env.DB_USER;
-const dbpass = process.env.DB_PASS;
-
 const uri = process.env.DB_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -50,6 +48,7 @@ async function run() {
         const oderCollection = client.db('portfolioJahir').collection('oder')
         const blogCollection = client.db('portfolioJahir').collection('blog')
         const featureCollection = client.db('portfolioJahir').collection('feature')
+        const contactCollection = client.db('portfolioJahir').collection('contact')
 
 
         /* book order crud operation */
@@ -290,7 +289,7 @@ async function run() {
         // new feature post 
         app.post('/feature', async (req, res) => {
             const newFeature = req.body;
-            
+
             // Get current date and time in Bangladesh (Dhaka) timezone
             const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
 
@@ -335,7 +334,7 @@ async function run() {
             const up_time = currentDateTimeDhaka.format('h:mm a');
             const up_date = currentDateTimeDhaka.format('MMM D, YYYY');
 
-            const blog = {
+            const feature = {
                 $set: {
                     image: updatedFeature.image,
                     title: updatedFeature.title,
@@ -345,7 +344,7 @@ async function run() {
                 }
             };
 
-            const result = await featureCollection.updateOne(filter, blog, options);
+            const result = await featureCollection.updateOne(filter, feature, options);
             res.send(result);
         });
 
@@ -415,6 +414,99 @@ async function run() {
             res.send(result)
         })
         /* order crud operation end */
+
+
+
+        /* contact crud operation start */
+
+        // get all contact
+        app.get('/contact', async (req, res) => {
+            const contacts = contactCollection.find();
+            const result = await contacts.toArray();
+            res.send(result)
+        })
+
+         // get specific id contact
+         app.get('/contact/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await contactCollection.findOne(query);
+            res.send(result)
+        })
+
+        // new contact post 
+        app.post('/contact', async (req, res) => {
+            const newContact = req.body;
+            const { name, email, subject, message } = newContact;
+            console.log(newContact)
+            if (newContact) {
+                sendMail('"Kaykobad Yiasin Khan" <kaykobadyiasin@gmail.com>', `"${name}! Kaykobad Khan" <${email}>, "${name}!" <kaykobadyiasin@gmail.com>`, subject, ``,
+                    `<body style="font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 8px;">
+                <div style="max-width: 600px; margin: 20px auto; padding: 20px; background-color: #F4FBFF; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+                    <h4 style="color: white; background-color: #008EFF; padding: 10px; border-radius: 5px;">Name: ${name}</h4>
+                    <p style="color: #333333;">Email: ${email}</p>
+                    <p style="color: #333333;">Message: ${message}</p>
+                </div>
+            </body>`)
+            }
+            else {
+                console.log('not found')
+            }
+
+            // Get current date and time in Bangladesh (Dhaka) timezone
+            const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
+
+            // Format order_time and order_date
+            const up_time = currentDateTimeDhaka.format('h:mm a');
+            const up_date = currentDateTimeDhaka.format('MMM D, YYYY');
+
+            // Add up_time and up_date to newBlog
+            newContact.up_time = up_time;
+            newContact.up_date = up_date;
+
+            const result = await contactCollection.insertOne(newContact);
+            res.send(result)
+        })
+
+
+        // update specific id contact other wise create new contact
+        app.put('/contact/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true }; // if have this id data update otherwise create new
+            const updatedContact = req.body;
+
+            // Get current date and time in Bangladesh (Dhaka) timezone
+            const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
+
+            // Format up_time and up_date
+            const up_time = currentDateTimeDhaka.format('h:mm a');
+            const up_date = currentDateTimeDhaka.format('MMM D, YYYY');
+
+            const contact = {
+                $set: {
+                    image: updatedContact.image,
+                    title: updatedContact.title,
+                    details: updatedContact.details,
+                    up_time: up_time, // Add up_time
+                    up_date: up_date  // Add up_date
+                }
+            };
+
+            const result = await contactCollection.updateOne(filter, contact, options);
+            res.send(result);
+        });
+
+
+        // delete specific id contact
+        app.delete('/contact/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await contactCollection.deleteOne(query);
+            res.send(result)
+        })
+
+
 
 
         // Send a ping to confirm a successful connection
