@@ -15,11 +15,14 @@ app.use(express.json())
 app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 
+// urls
+const apiUrl = process.env.API_URL;
+const clientUrl = process.env.CLIENT_URL;
 // mongodb 
 const dbUser = process.env.DB_USER;
 const dbpass = process.env.DB_PASS;
 
-const uri = `mongodb+srv://${dbUser}:${dbpass}@cluster0.0iwmvh7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = process.env.DB_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -69,10 +72,10 @@ async function run() {
                 total_amount: book?.price,
                 currency: 'BDT',
                 tran_id: trans_id, // use unique tran_id for each api call
-                success_url: `https://jahirul-islam-portfolio-api.onrender.com/payment/success/${trans_id}`,
-                fail_url: `https://jahirul-islam-portfolio-api.onrender.com/payment/fail/${trans_id}`,
-                cancel_url: 'https://jahirul-islam-portfolio-api.onrender.com/cancel',
-                ipn_url: 'https://jahirul-islam-portfolio-api.onrender.com/ipn',
+                success_url: `${apiUrl}/payment/success/${trans_id}`,
+                fail_url: `${apiUrl}/payment/fail/${trans_id}`,
+                cancel_url: `${apiUrl}/cancel`,
+                ipn_url: `${apiUrl}/ipn`,
                 shipping_method: 'Courier',
                 product_name: book?.name,
                 product_category: 'Electronic',
@@ -127,7 +130,7 @@ async function run() {
                     }
                 );
                 if (result.modifiedCount > 0) {
-                    res.redirect(`http://localhost:5173/payment/success/${req.params.transId}`)
+                    res.redirect(`${clientUrl}/payment/success/${req.params.transId}`)
                 }
             })
 
@@ -137,7 +140,7 @@ async function run() {
                     tranjectionId: req.params.transId
                 });
                 if (result.deletedCount) {
-                    res.redirect(`http://localhost:5173/payment/fail/${req.params.transId}`)
+                    res.redirect(`${clientUrl}/payment/fail/${req.params.transId}`)
                 }
             })
 
