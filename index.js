@@ -48,6 +48,8 @@ async function run() {
         // collections 
         const bookCollection = client.db('portfolioJahir').collection('books')
         const oderCollection = client.db('portfolioJahir').collection('oder')
+        const blogCollection = client.db('portfolioJahir').collection('blog')
+        const featureCollection = client.db('portfolioJahir').collection('feature')
 
 
         /* book order crud operation */
@@ -200,6 +202,163 @@ async function run() {
             res.send(result)
         })
         /* book crud operation end */
+
+
+
+
+
+
+        /* blog crud operation start */
+        // new blog post 
+        app.post('/blog', async (req, res) => {
+            const newBlog = req.body;
+            console.log(newBlog)
+
+            // Get current date and time in Bangladesh (Dhaka) timezone
+            const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
+
+            // Format order_time and order_date
+            const up_time = currentDateTimeDhaka.format('h:mm a');
+            const up_date = currentDateTimeDhaka.format('MMM D, YYYY');
+
+            // Add up_time and up_date to newBlog
+            newBlog.up_time = up_time;
+            newBlog.up_date = up_date;
+
+            const result = await blogCollection.insertOne(newBlog);
+            res.send(result)
+        })
+
+        // get all blog
+        app.get('/blog', async (req, res) => {
+            const blogs = blogCollection.find();
+            const result = await blogs.toArray();
+            res.send(result)
+        })
+
+        // get specific id blog
+        app.get('/blog/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await blogCollection.findOne(query);
+            res.send(result)
+        })
+
+        // update specific id blog other wise create new blog
+        app.put('/blog/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true }; // if have this id data update otherwise create new
+            const updatedBlog = req.body;
+
+            // Get current date and time in Bangladesh (Dhaka) timezone
+            const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
+
+            // Format up_time and up_date
+            const up_time = currentDateTimeDhaka.format('h:mm a');
+            const up_date = currentDateTimeDhaka.format('MMM D, YYYY');
+
+            const blog = {
+                $set: {
+                    image: updatedBlog.image,
+                    title: updatedBlog.title,
+                    details: updatedBlog.details,
+                    up_time: up_time, // Add up_time
+                    up_date: up_date  // Add up_date
+                }
+            };
+
+            const result = await blogCollection.updateOne(filter, blog, options);
+            res.send(result);
+        });
+
+        // delete specific id blog
+        app.delete('/blog/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await blogCollection.deleteOne(query);
+            res.send(result)
+        })
+        /* blog crud operation end */
+
+
+
+
+
+
+        /* feature crud operation start */
+        // new feature post 
+        app.post('/feature', async (req, res) => {
+            const newFeature = req.body;
+            
+            // Get current date and time in Bangladesh (Dhaka) timezone
+            const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
+
+            // Format order_time and order_date
+            const up_time = currentDateTimeDhaka.format('h:mm a');
+            const up_date = currentDateTimeDhaka.format('MMM D, YYYY');
+
+            // Add up_time and up_date to newBlog
+            newFeature.up_time = up_time;
+            newFeature.up_date = up_date;
+
+            const result = await featureCollection.insertOne(newFeature);
+            res.send(result)
+        })
+
+        // get all feature
+        app.get('/feature', async (req, res) => {
+            const features = featureCollection.find();
+            const result = await features.toArray();
+            res.send(result)
+        })
+
+        // get specific id feature
+        app.get('/feature/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await featureCollection.findOne(query);
+            res.send(result)
+        })
+
+        // update specific id feature other wise create new feature
+        app.put('/feature/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true }; // if have this id data update otherwise create new
+            const updatedFeature = req.body;
+
+            // Get current date and time in Bangladesh (Dhaka) timezone
+            const currentDateTimeDhaka = moment().tz('Asia/Dhaka');
+
+            // Format up_time and up_date
+            const up_time = currentDateTimeDhaka.format('h:mm a');
+            const up_date = currentDateTimeDhaka.format('MMM D, YYYY');
+
+            const blog = {
+                $set: {
+                    image: updatedFeature.image,
+                    title: updatedFeature.title,
+                    details: updatedFeature.details,
+                    up_time: up_time, // Add up_time
+                    up_date: up_date  // Add up_date
+                }
+            };
+
+            const result = await featureCollection.updateOne(filter, blog, options);
+            res.send(result);
+        });
+
+        // delete specific id feature
+        app.delete('/feature/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await featureCollection.deleteOne(query);
+            res.send(result)
+        })
+        /* feature crud operation end */
+
+
 
 
 
