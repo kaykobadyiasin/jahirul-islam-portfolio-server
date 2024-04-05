@@ -149,58 +149,118 @@ async function run() {
 
 
         /* book crud operation start */
-        // new book post 
+        // Create a new book
         app.post('/book', async (req, res) => {
-            const newBook = req.body;
-            console.log(newBook)
-            const result = await bookCollection.insertOne(newBook);
-            res.send(result)
-        })
+            try {
+                const newBook = req.body;
+                const insertedBook = await bookCollection.insertOne(newBook);
+                res.status(201).json(insertedBook); // Respond with the inserted book
+            } catch (error) {
+                console.error("Error creating a new book:", error);
+                res.status(500).send("Internal Server Error");
+            }
+        });
 
-        // get all book
+
+
+
+        // Get all books
         app.get('/book', async (req, res) => {
-            const books = bookCollection.find();
-            const result = await books.toArray();
-            res.send(result)
-        })
+            try {
+                const books = await bookCollection.find().toArray();
+                res.send(books);
+            } catch (error) {
+                console.error("Error fetching books:", error);
+                res.status(500).send("Internal Server Error");
+            }
+        });
 
-        // get specific id book
+
+        // Get a specific book by ID
         app.get('/book/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const result = await bookCollection.findOne(query);
-            res.send(result)
-        })
+            const query = { _id: new ObjectId(id) };
 
-        // update specific id book other wise create new book
-        app.put('/book/:id', async (req, res) => {
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) }
-            const options = { upsert: true } // if have this id data upadate other wise create new
-            const updatedBook = req.body;
-            const book = {
-                $set: {
-                    image: updatedBook.image,
-                    name: updatedBook.name,
-                    price: updatedBook.price,
-                    author: updatedBook.author,
-                    review: updatedBook.review,
-                    details: updatedBook.details,
+            try {
+                const result = await bookCollection.findOne(query);
+                if (result) {
+                    res.send(result);
+                } else {
+                    res.status(404).send("Book not found");
                 }
+            } catch (error) {
+                console.error("Error fetching the book:", error);
+                res.status(500).send("Internal Server Error");
             }
+        });
 
-            const result = await bookCollection.updateOne(filter, book, options);
-            res.send(result)
-        })
 
-        // delete specific id book
+        // Update or create a new book with a specific ID
+        app.put('/book/:id', async (req, res) => {
+            const bookId = req.params.id;
+            const filter = { _id: new ObjectId(bookId) };
+            const options = { upsert: true };
+            const updatedBookData = req.body;
+            const updatedBook = {
+                $set: {
+                    image: updatedBookData.image,
+                    name: updatedBookData.name,
+                    price: updatedBookData.price,
+                    author: updatedBookData.author,
+                    details: updatedBookData.details,
+                    // reviews: updatedBookData.reviews,
+                }
+            };
+
+            try {
+                const result = await bookCollection.updateOne(filter, updatedBook, options);
+                res.send(result);
+            } catch (error) {
+                console.error("Error updating or creating book:", error);
+                res.status(500).send("Internal Server Error");
+            }
+        });
+
+        // Delete a book with a specific ID
         app.delete('/book/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const result = await bookCollection.deleteOne(query);
-            res.send(result)
-        })
+            try {
+                const bookId = req.params.id;
+                const query = { _id: new ObjectId(bookId) };
+                const result = await bookCollection.deleteOne(query);
+
+                if (result.deletedCount === 1) {
+                    res.status(200).json({ message: "Book deleted successfully." });
+                } else {
+                    res.status(404).json({ message: "Book not found." });
+                }
+            } catch (error) {
+                console.error("Error deleting book:", error);
+                res.status(500).json({ message: "Internal Server Error" });
+            }
+        });
+
+
+        // book review operation end
+        app.put('/book/:id/review', async (req, res) => {
+            const bookId = req.params.id;
+            const filter = { _id: new ObjectId(bookId) };
+            const updatedReview = req.body;
+
+            try {
+                const result = await bookCollection.updateOne(
+                    filter,
+                    { $push: { reviews: updatedReview } }
+                );
+                res.send(result);
+            } catch (error) {
+                console.error("Error adding review:", error);
+                res.status(500).send("Internal Server Error");
+            }
+        });
+
         /* book crud operation end */
+
+
 
 
 
@@ -426,8 +486,8 @@ async function run() {
             res.send(result)
         })
 
-         // get specific id contact
-         app.get('/contact/:id', async (req, res) => {
+        // get specific id contact
+        app.get('/contact/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await contactCollection.findOne(query);
