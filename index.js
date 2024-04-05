@@ -241,7 +241,7 @@ async function run() {
 
 
         // book review operation end
-        app.put('/book/:id/review', async (req, res) => {
+        app.put('/book/:id/reviews', async (req, res) => {
             const bookId = req.params.id;
             const filter = { _id: new ObjectId(bookId) };
             const updatedReview = req.body;
